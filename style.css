@@ -864,3 +864,54 @@ header {
 .gallery-item {
     animation: fadeInUp 1s ease-out;
 }
+
+/* MOBILE SIDEBAR MENU */
+
+.menu-toggle{
+display:none;
+font-size:30px;
+color:white;
+cursor:pointer;
+}
+
+/* MOBILE DESIGN */
+@media (max-width:768px){
+
+.menu-toggle{
+display:block;
+position:absolute;
+right:20px;
+top:20px;
+z-index:2000;
+}
+
+.navbar{
+flex-direction:row;
+position:relative;
+}
+
+.nav-menu{
+position:fixed;
+top:0;
+left:-100%;
+width:260px;
+height:100vh;
+background:var(--primary-color);
+flex-direction:column;
+align-items:flex-start;
+padding-top:100px;
+padding-left:25px;
+gap:25px;
+transition:0.4s;
+box-shadow:4px 0 20px rgba(0,0,0,0.3);
+}
+
+.nav-menu.active{
+left:0;
+}
+
+.nav-link{
+font-size:18px;
+}
+
+        }
