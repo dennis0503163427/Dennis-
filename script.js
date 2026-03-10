@@ -1,18 +1,41 @@
 /**
- * 1. SMOOTH SCROLLING
- * Fix: Added check to ensure the link is an internal ID (#) 
- * to prevent errors on external links.
+ * 1. MOBILE MENU & ACCESSIBILITY
  */
-document.querySelectorAll(".nav-link").forEach(link => {
+const menuToggle = document.querySelector(".menu-toggle");
+const navMenu = document.querySelector(".nav-menu");
+const navLinks = document.querySelectorAll(".nav-link");
+
+if (menuToggle && navMenu) {
+    menuToggle.addEventListener("click", () => {
+        const isOpen = navMenu.classList.toggle("active");
+        // Update accessibility attribute for screen readers
+        menuToggle.setAttribute("aria-expanded", isOpen);
+    });
+
+    // Close menu when a link is clicked
+    navLinks.forEach(link => {
+        link.addEventListener("click", () => {
+            navMenu.classList.remove("active");
+            menuToggle.setAttribute("aria-expanded", "false");
+        });
+    });
+}
+
+/**
+ * 2. SMOOTH SCROLLING
+ */
+navLinks.forEach(link => {
     link.addEventListener("click", function(e) {
-        const targetId = this.getAttribute("href");
+        const href = this.getAttribute("href");
         
-        if (targetId.startsWith("#")) {
-            const targetSection = document.querySelector(targetId);
+        // Only trigger if it's an internal ID link
+        if (href.startsWith("#") && href.length > 1) {
+            const targetSection = document.querySelector(href);
             if (targetSection) {
                 e.preventDefault();
                 targetSection.scrollIntoView({
-                    behavior: "smooth"
+                    behavior: "smooth",
+                    block: "start"
                 });
             }
         }
@@ -20,93 +43,79 @@ document.querySelectorAll(".nav-link").forEach(link => {
 });
 
 /**
- * 2. ACTIVE LINK HIGHLIGHTING
- * Fix: Used window.scrollY for better compatibility and 
- * improved the math for more accurate section detection.
+ * 3. ACTIVE LINK HIGHLIGHTING (Intersection Observer Method)
+ * More performant than window.onScroll
  */
-const sections = document.querySelectorAll("section");
-const navLinks = document.querySelectorAll(".nav-link");
-
-window.addEventListener("scroll", () => {
-    let current = "";
-    const scrollPos = window.scrollY || window.pageYOffset;
-
-    sections.forEach(section => {
-        const sectionTop = section.offsetTop - 160; // Adjusted offset
-        const sectionHeight = section.clientHeight;
-        if (scrollPos >= sectionTop && scrollPos < sectionTop + sectionHeight) {
-            current = section.getAttribute("id");
-        }
-    });
-
-    navLinks.forEach(link => {
-        link.classList.remove("active");
-        if (current && link.getAttribute("href") === "#" + current) {
-            link.classList.add("active");
-        }
-    });
-});
-
-/**
- * 3. CONTACT FORM SUBMISSION
- * Fix: Added a null-check so the script doesn't break on 
- * pages without a contact form.
- */
-const contactForm = document.querySelector(".contact-form");
-if (contactForm) {
-    contactForm.addEventListener("submit", function(e) {
-        e.preventDefault();
-        alert("✅ Thank you! Your message has been sent.");
-        contactForm.reset();
-    });
-}
-
-/**
- * 4. NEWSLETTER SUBSCRIPTION
- * Fix: Changed from 'click' to 'submit' so it works when 
- * the user hits "Enter" inside the input field.
- */
-const newsletterForm = document.querySelector(".newsletter-form");
-if (newsletterForm) {
-    newsletterForm.addEventListener("submit", function(e) {
-        e.preventDefault();
-        const emailInput = this.querySelector("input");
-        
-        if (emailInput.value.trim() === "") {
-            alert("Please enter your email first.");
-        } else {
-            alert("🎉 Thank you for subscribing!");
-            emailInput.value = "";
-        }
-    });
-}
-
-/**
- * 5. SCROLL ANIMATION (FADE-IN EFFECT)
- * This makes elements slide up smoothly when they enter 
- * the user's viewport.
- */
-const observerOptions = {
-    threshold: 0.15,
-    rootMargin: "0px 0px -50px 0px" // Triggers slightly before element is visible
+const sections = document.querySelectorAll("section[id]");
+const navObserverOptions = {
+    threshold: 0.6, // Section is "active" when 60% visible
+    rootMargin: "0px"
 };
 
-const scrollObserver = new IntersectionObserver((entries) => {
+const navObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
-            entry.target.style.opacity = "1";
-            entry.target.style.transform = "translateY(0)";
-            // Stop observing once the animation has finished
-            scrollObserver.unobserve(entry.target);
+            const id = entry.target.getAttribute("id");
+            
+            navLinks.forEach(link => {
+                link.classList.remove("active");
+                if (link.getAttribute("href") === `#${id}`) {
+                    link.classList.add("active");
+                }
+            });
         }
     });
-}, observerOptions);
+}, navObserverOptions);
 
-// Select items to animate
+sections.forEach(section => navObserver.observe(section));
+
+/**
+ * 4. FORMS: CONTACT & NEWSLETTER
+ */
+const handleFormSubmission = (selector, successMsg) => {
+    const form = document.querySelector(selector);
+    if (!form) return;
+
+    form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        
+        // Simple validation for newsletter
+        if (selector === ".newsletter-form") {
+            const email = form.querySelector("input").value.trim();
+            if (!email) {
+                alert("Please enter a valid email.");
+                return;
+            }
+        }
+
+        alert(successMsg);
+        form.reset();
+    });
+};
+
+handleFormSubmission(".contact-form", "✅ Thank you! Your message has been sent.");
+handleFormSubmission(".newsletter-form", "🎉 Thank you for subscribing!");
+
+/**
+ * 5. SCROLL ANIMATIONS (Reveal on Scroll)
+ */
+const scrollObserverOptions = {
+    threshold: 0.15,
+    rootMargin: "0px 0px -50px 0px"
+};
+
+const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add("revealed");
+            revealObserver.unobserve(entry.target);
+        }
+    });
+}, scrollObserverOptions);
+
+// Select items and apply initial animation state via class
 const animElements = document.querySelectorAll(".menu-item, .testimonial-card, .gallery-item, .feature-card");
 animElements.forEach(el => {
-    el.style.opacity = "0";
-    el.style.transform = "translateY(30px)";
-    el.style.transition = "opacity 0.8s ease-out, transform 0.8s ease-out";
-    scrollObserver.observe(el);
+    el.classList.add("reveal-init"); // See CSS below
+    revealObserver.observe(el);
 });
